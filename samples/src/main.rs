@@ -30,6 +30,14 @@ fn filter1(scores: Vec<Score>) -> Vec<Score> {
     return ret_scores;
 }
 
+fn privacy_output_vec(scores: Vec<Score>) -> Vec<u32> {
+    let mut ret: Vec<u32> = Vec::new();
+    for index in 0..5 {
+        ret.push(scores[index].point);
+    }
+    return ret;
+}
+
 //#[start]
 //fn main(argc: isize, argv: *const *const u8) -> isize {
 fn main(){
@@ -55,20 +63,23 @@ fn main(){
             point: 500,
         },
     ];
+    /*
     let output1: Output<&Vec<Score>> = Output {
         output_type: OutputType::Vec2Sum,
         value: &private_score,
     };
     let json_string = serde_json::to_string(&output1);
     println!("{:?}\n", json_string.unwrap());
+    */
 
     let filtered_score = filter1(private_score);
-    let output2: Output<&Vec<Score>> = Output {
+    let privacy_vec = privacy_output_vec(filtered_score);
+    let output2: Output<&Vec<u32>> = Output {
         output_type: OutputType::Vec2Sum,
-        value: &filtered_score,
+        value: &privacy_vec,
     };
     let json_string2 = serde_json::to_string(&output2);
-    println!("{:?}\n",json_string2.unwrap());
+    println!("{}",json_string2.unwrap());
 
     //return Ok(());
     //return 0;

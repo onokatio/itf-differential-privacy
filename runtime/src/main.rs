@@ -27,7 +27,7 @@ fn privacy_out_vec(a: i32, b: i32) -> i32 {
 fn main() -> anyhow::Result<()>{
     let path = "../samples/target/wasm32-wasi/debug/samples.wasm";
     //let path = "../samples/target/wasm32-unknown-unknown/debug/samples.wasm";
-    println!("[Runtime] Loading {}", path);
+    eprintln!("[Runtime] Loading {}", path);
     let wasm_bytes = std::fs::read(path)?;
     let store = Store::default();
     let module = Module::new(&store, wasm_bytes)?;
@@ -36,7 +36,8 @@ fn main() -> anyhow::Result<()>{
     let env = wasmer_wasi::WasiEnv::new(state);
     let wasmer_import_object = wasmer_wasi::generate_import_object_from_env(&store,env,wasmer_wasi::WasiVersion::Snapshot1);
     let externs = wasmer_import_object.externs_vec();
-    externs["wasi_snapshot_preview1"]["fd_write"];
+    //externs["wasi_snapshot_preview1"]["fd_write"];
+    /*
     let import_object = imports! {
         "wasi_snapshot_preview1" => {
             //."fd_write" => Function::new_native_with_env(&store, env.clone(), wasmer_wasi::syscalls::wasi::fd_write),
@@ -47,7 +48,9 @@ fn main() -> anyhow::Result<()>{
             "privacy_out_vec" => Function::new_native(&store, privacy_out_vec),
         }
     };
-    println!("[Runtime] Start {}", path);
+    */
+    let import_object = wasmer_import_object;
+    eprintln!("[Runtime] Start {}", path);
     //let instance = Instance::new(&module, &import_object)?;
     let instance = Instance::new(&module, &import_object)?;
     match instance.exports.get_function("_start") {
