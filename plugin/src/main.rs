@@ -1,6 +1,8 @@
 use std::io;
 use std::f64::consts;
 use serde_derive::{Deserialize, Serialize};
+use statrs::distribution::{Laplace, ContinuousCDF};
+use rand::{thread_rng, Rng};
 
 #[derive(Debug, Serialize, Deserialize)]
 enum OutputType {
@@ -14,19 +16,14 @@ struct Output<T> {
     value: T,
 }
 
-
 fn main() {
     let mut input_json_string = String::new();
     io::stdin().read_line(&mut input_json_string);
     let input_json: Output<Vec<u32>> = serde_json::from_str(&input_json_string).unwrap();
-    //println!("{:?}", input_json_string);
     println!("{:?}", input_json);
-    let y = Laplace(0.5, 0.0, 2.0);
-    println!("{:?}", y);
-}
 
-// avg: データの平均値
-// scale: 2*scale*scaleが分散になるような値
-fn Laplace(x: f64, avg: f64, scale: f64) -> f64 {
-    return 1.0/(2.0*scale) * consts::E.powf(-((x-avg)/scale));
+    let avg: u32 = input_json.value.iter().sum::<u32>() / input_json.value.len() as u32;
+    println!("avg: {:?}", avg);
+    let noise = Laplace::new(0.0,1000.0/(input_json.value.len() as f64 * 10.0)).unwrap().inverse_cdf(thread_rng().gen::<f64>());
+    println!("avg with privacy: {:?}", avg as f64 + noise);
 }
