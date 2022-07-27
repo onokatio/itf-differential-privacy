@@ -4,6 +4,8 @@ use serde_derive::{Deserialize, Serialize};
 use statrs::distribution::{Laplace, ContinuousCDF};
 use rand::{thread_rng, Rng};
 
+const SIGMA: usize = 10;
+
 #[derive(Debug, Serialize, Deserialize)]
 enum OutputType {
     Vec2Sum,
@@ -27,7 +29,7 @@ fn main() {
 }
 
 fn dp_avg(data: Vec<f64>, max: f64) -> f64 {
-    let lap = Laplace::new(0.0,max/(data.len() as f64 * 10.0)).unwrap();
+    let lap = Laplace::new(0.0,max/(data.len() * SIGMA) as f64).unwrap();
     let noise = lap.inverse_cdf(thread_rng().gen::<f64>());
     let avg = data.iter().sum::<f64>() / data.len() as f64;
     return avg + noise;
