@@ -1,5 +1,6 @@
 //#![feature(start)]
 use serde_derive::{Deserialize, Serialize};
+use rand::{thread_rng, Rng};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Score {
@@ -41,26 +42,27 @@ fn privacy_output_vec(scores: Vec<Score>) -> Vec<u32> {
 //#[start]
 //fn main(argc: isize, argv: *const *const u8) -> isize {
 fn main(){
+    let mut rng = thread_rng();
     let private_score: Vec<Score> = vec![
         Score {
             name: "Alice".to_string(),
-            point: 100,
+            point: rng.gen_range(0..100),
         },
         Score {
             name: "Bob".to_string(),
-            point: 200,
+            point: rng.gen_range(0..100),
         },
         Score {
             name: "Charlie".to_string(),
-            point: 300,
+            point: rng.gen_range(0..100),
         },
         Score {
             name: "David".to_string(),
-            point: 400,
+            point: rng.gen_range(0..100),
         },
         Score {
             name: "Eve".to_string(),
-            point: 500,
+            point: rng.gen_range(0..100),
         },
     ];
     /*
@@ -72,8 +74,8 @@ fn main(){
     println!("{:?}\n", json_string.unwrap());
     */
 
-    let filtered_score = filter1(private_score);
-    let privacy_vec = privacy_output_vec(filtered_score);
+    //let filtered_score = filter1(private_score);
+    let privacy_vec = privacy_output_vec(private_score);
     let output2: Output<&Vec<u32>> = Output {
         output_type: OutputType::Vec2Sum,
         value: &privacy_vec,
