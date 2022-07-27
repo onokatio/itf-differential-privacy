@@ -22,8 +22,13 @@ fn main() {
     let input_json: Output<Vec<u32>> = serde_json::from_str(&input_json_string).unwrap();
     println!("{:?}", input_json);
 
-    let avg: u32 = input_json.value.iter().sum::<u32>() / input_json.value.len() as u32;
-    println!("avg: {:?}", avg);
-    let noise = Laplace::new(0.0,1000.0/(input_json.value.len() as f64 * 10.0)).unwrap().inverse_cdf(thread_rng().gen::<f64>());
-    println!("avg with privacy: {:?}", avg as f64 + noise);
+    let avg = dp_avg(input_json.value,1000.0);
+    println!("avg with privacy: {:?}", avg);
+}
+
+fn dp_avg(data: Vec<u32>, max: f64) -> f64 {
+    let lap = Laplace::new(0.0,max/(data.len() as f64 * 10.0)).unwrap();
+    let noise = lap.inverse_cdf(thread_rng().gen::<f64>());
+    let avg: f64 = data.iter().sum::<u32>() as f64 / data.len() as f64;
+    return avg + noise;
 }
