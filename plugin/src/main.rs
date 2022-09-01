@@ -32,5 +32,6 @@ fn dp_avg(data: Vec<f64>, max: f64) -> f64 {
     let lap = Laplace::new(0.0,max/(data.len() * SIGMA) as f64).unwrap();
     let noise = lap.inverse_cdf(thread_rng().gen::<f64>());
     let avg = data.iter().sum::<f64>() / data.len() as f64;
+    println!("avg: {:?}", avg);
     return avg + noise;
 }

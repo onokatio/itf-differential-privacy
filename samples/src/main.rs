@@ -1,25 +1,27 @@
-//#![feature(start)]
-use serde_derive::{Deserialize, Serialize};
 use rand::{thread_rng, Rng};
 
-#[derive(Debug, Serialize, Deserialize)]
 struct Score {
     name: String,
-    point: u32,
+    point: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
 enum OutputType {
     Vec2Sum,
     Vec2Avg,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
 struct Output<T> {
     output_type: OutputType,
     value: T,
 }
 
+#[link(wasm_import_module = "wasi_dp_preview1")]
+extern "C" {
+    pub fn privacy_out_array5(a: i32, b: i32, c: i32, d: i32, e: i32) -> i32;
+    pub fn privacy_out_vec(nums: Vec<i32>, len: i32) -> i32;
+}
+
+/*
 fn filter1(scores: Vec<Score>) -> Vec<Score> {
     let mut ret_scores: Vec<Score> = Vec::new();
     for index in 0..5 {
@@ -30,9 +32,10 @@ fn filter1(scores: Vec<Score>) -> Vec<Score> {
     }
     return ret_scores;
 }
+*/
 
-fn privacy_output_vec(scores: Vec<Score>) -> Vec<u32> {
-    let mut ret: Vec<u32> = Vec::new();
+fn score2vec(scores: Vec<Score>) -> Vec<i32> {
+    let mut ret: Vec<i32> = Vec::new();
     for index in 0..5 {
         ret.push(scores[index].point);
     }
@@ -75,13 +78,17 @@ fn main(){
     */
 
     //let filtered_score = filter1(private_score);
-    let privacy_vec = privacy_output_vec(private_score);
-    let output2: Output<&Vec<u32>> = Output {
+    let privacy_vec = score2vec(private_score);
+    let output2: Output<&Vec<i32>> = Output {
         output_type: OutputType::Vec2Sum,
         value: &privacy_vec,
     };
-    let json_string2 = serde_json::to_string(&output2);
-    println!("{}",json_string2.unwrap());
+    let v = output2.value;
+    unsafe {
+        privacy_out_array5(v[0], v[1], v[2], v[3], v[4]);
+        privacy_out_vec(v.to_vec(), v.len() as i32);
+    }
+    println!("Hello World!");
 
     //return Ok(());
     //return 0;
