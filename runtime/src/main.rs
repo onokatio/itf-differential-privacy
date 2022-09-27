@@ -7,8 +7,16 @@ fn privacy_out_array5(a: i32, b: i32, c: i32, d: i32, e: i32) -> i32 {
     eprintln!("[Runtime] privacy_out_array5({:?},{:?},{:?},{:?},{:?})",a,b,c,d,e);
     return 0;
 }
-fn privacy_out_vec(nums: i32, len: i32) -> i32 {
+fn privacy_out_vec(
+    env: &WasiEnv,
+    iovs: WasmPtr<__wasi_iovec_t, Array>,
+    iovs_len: u32,
+    nout: WasmPtr<u32>,
+) -> __wasi_errno_r {
     eprintln!("[Runtime] privacy_out_vec({:?}, {:?})", nums, len);
+
+    let (memory, mut state) = env.get_memory_and_wasi_state(0);
+    let privacy_vec = iovs.deref(memory, 0, iovs_len);
     return 0;
 }
 
