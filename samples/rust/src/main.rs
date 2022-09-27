@@ -17,8 +17,8 @@ struct Output<T> {
 
 #[link(wasm_import_module = "wasi_dp_preview1")]
 extern "C" {
-    pub fn privacy_out_array5(a: i32, b: i32, c: i32, d: i32, e: i32) -> i32;
-    pub fn privacy_out_vec(nums: Vec<i32>, len: i32) -> i32;
+    //pub fn privacy_out_array5(a: i32, b: i32, c: i32, d: i32, e: i32) -> i32;
+    //pub fn privacy_out_vec(vecs: Vec<i32>, len: i32, nwritten: &i32) -> i32;
 }
 
 /*
@@ -45,6 +45,7 @@ fn score2vec(scores: Vec<Score>) -> Vec<i32> {
 //#[start]
 //fn main(argc: isize, argv: *const *const u8) -> isize {
 fn main(){
+    println!("Hello World!");
     let mut rng = thread_rng();
     let private_score: Vec<Score> = vec![
         Score {
@@ -84,11 +85,11 @@ fn main(){
         value: &privacy_vec,
     };
     let v = output2.value;
+    let nwritten = 0;
     unsafe {
-        privacy_out_array5(v[0], v[1], v[2], v[3], v[4]);
-        privacy_out_vec(v.to_vec(), v.len() as i32);
+        //privacy_out_array5(v[0], v[1], v[2], v[3], v[4]);
+        //privacy_out_vec(v.to_vec(), v.len() as i32, &nwritten);
     }
-    println!("Hello World!");
 
     //return Ok(());
     //return 0;

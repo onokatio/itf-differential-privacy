@@ -1,0 +1,10 @@
+int privacy_vec(int type, double* ptr, int len, double min, double max)
+
+type:
+	0: count
+	1: sum
+	2: avg
+	3: min
+	4: max
+
+len * 8byte
