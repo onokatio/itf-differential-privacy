@@ -1,5 +1,5 @@
 use std::env;
-use wasmer::{Store, Module, Instance, Imports, Exports, FunctionEnvMut, WasmPtr, MemorySize};
+use wasmer::{Store, Module, Instance, Imports, Exports, FunctionEnvMut, WasmPtr, MemorySize, Memory32};
 use wasmer_wasi;
 //use anyhow;
 
@@ -20,14 +20,18 @@ fn privacy_out_vec<M: MemorySize>(
     ctx: &FunctionEnvMut<'_, wasmer_wasi::WasiEnv>,
     iovs: WasmPtr<wasmer_wasi::types::__wasi_iovec_t<M>, M>,
     iovs_len: M::Offset,
-    nwrite: WasmPtr<M::Offset, M>,
+    nwritten: WasmPtr<M::Offset, M>,
 ) -> wasmer_wasi::types::__wasi_errno_t {
     let env = ctx.data();
     eprintln!("[Runtime] privacy_out_vec({:?}, {:?})", iovs, iovs_len);
 
-    let (memory, mut state, inodes) = env.get_memory_and_wasi_state_and_inodes(&ctx, 0);
-    let iovs = wasmer_wasi::macros::wasi_try_mem_ok!(iovs.slice(&memory, iovs_len));
-    let privacy_vec = iovs.deref(&memory);
+    let memory = env.memory();
+    let mut state = env.state();
+    let iovs = match iovs.slice(&env.memory_view(&ctx), iovs_len) {
+        Ok(iovs) => iovs,
+        Err(e) => panic!("address invalid {}", e),
+    };
+    let nwritten = nwritten.deref(&env.memory_view(&ctx));
     return 0;
 }
 
@@ -75,7 +79,7 @@ fn main() -> anyhow::Result<()>{
     //wasi_snapshot_preview1.insert("fd_write", wasmer::Function::new_native(&store, deny_syscall_4));
     let mut wasi_dp_preview1 = Exports::new();
     wasi_dp_preview1.insert("privacy_out_array5", wasmer::Function::new_typed(&mut store, privacy_out_array5));
-    wasi_dp_preview1.insert("privacy_out_vec", wasmer::Function::new_typed(&mut store, privacy_out_vec));
+    wasi_dp_preview1.insert("privacy_out_vec", wasmer::Function::new_typed_with_env(&mut store, &env, privacy_out_vec::<Memory32>));
     let mut import_object = Imports::new();
     //import another function
     //wasi_snapshot_preview1.insert("sock_accept", wasix_32v1.get_function("sock_accept").unwrap().clone());
