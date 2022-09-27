@@ -16,8 +16,9 @@ fn privacy_out_array5(a: i32, b: i32, c: i32, d: i32, e: i32) -> i32 {
 ///     Number of vectors
 /// - `size_t nwrite`
 ///     Number of vectors write
+/*
 fn privacy_out_vec<M: MemorySize>(
-    ctx: &FunctionEnvMut<'_, wasmer_wasi::WasiEnv>,
+    ctx: FunctionEnvMut<'_, wasmer_wasi::WasiEnv>,
     iovs: WasmPtr<wasmer_wasi::types::__wasi_iovec_t<M>, M>,
     iovs_len: M::Offset,
     nwritten: WasmPtr<M::Offset, M>,
@@ -33,7 +34,7 @@ fn privacy_out_vec<M: MemorySize>(
     };
     let nwritten = nwritten.deref(&env.memory_view(&ctx));
     return 0;
-}
+}*/
 
 #[allow(dead_code)]
 fn deny_syscall_2(_: i32, _: i32) -> i32 {
@@ -78,19 +79,21 @@ fn main() -> anyhow::Result<()>{
     //wasi_snapshot_preview1.insert("random_get", wasmer::Function::new_native(&store, deny_syscall_2));
     //wasi_snapshot_preview1.insert("fd_write", wasmer::Function::new_native(&store, deny_syscall_4));
     let mut wasi_dp_preview1 = Exports::new();
-    wasi_dp_preview1.insert("privacy_out_array5", wasmer::Function::new_typed(&mut store, privacy_out_array5));
-    wasi_dp_preview1.insert("privacy_out_vec", wasmer::Function::new_typed_with_env(&mut store, &env, privacy_out_vec::<Memory32>));
+    //wasi_dp_preview1.insert("privacy_out_array5", wasmer::Function::new_typed(&mut store, privacy_out_array5));
+    //wasi_dp_preview1.insert("privacy_out_vec", wasmer::Function::new_typed_with_env(&mut store, &env, privacy_out_vec::<Memory32>));
     let mut import_object = Imports::new();
     //import another function
     //wasi_snapshot_preview1.insert("sock_accept", wasix_32v1.get_function("sock_accept").unwrap().clone());
     import_object.register_namespace("wasi_snapshot_preview1", wasi_snapshot_preview1);
-    import_object.register_namespace("wasix_64v1", wasix_64v1);
-    import_object.register_namespace("wasix_32v1", wasix_32v1);
+    //import_object.register_namespace("wasix_64v1", wasix_64v1);
+    //import_object.register_namespace("wasix_32v1", wasix_32v1);
     import_object.register_namespace("wasi_dp_preview1", wasi_dp_preview1);
-    eprintln!("[Runtime] Start {}", path);
+    eprintln!("[Runtime] Create Instance");
     let instance = Instance::new(&mut store,&module, &import_object)?;
+    eprintln!("[Runtime] Find _start");
     match instance.exports.get_function("_start") {
         Ok(f) => {
+            eprintln!("[Runtime] Start `_start` {}", path);
             match f.call(&mut store,&[]) {
                 Ok(_) => {
                     eprintln!("[Runtime] Done {}", path);
@@ -102,7 +105,7 @@ fn main() -> anyhow::Result<()>{
         }
         //ExportError => {
         _ => {
-            eprintln!("error");
+            eprintln!("Couldn't get _start function");
         }
     }
 
