@@ -1,5 +1,5 @@
 use std::env;
-use wasmer::{Store, Module, Instance, Imports, Exports};
+use wasmer::{Store, Module, Instance, Imports, Exports, FunctionEnvMut, WasmPtr, MemorySize};
 use wasmer_wasi;
 //use anyhow;
 
@@ -7,16 +7,27 @@ fn privacy_out_array5(a: i32, b: i32, c: i32, d: i32, e: i32) -> i32 {
     eprintln!("[Runtime] privacy_out_array5({:?},{:?},{:?},{:?},{:?})",a,b,c,d,e);
     return 0;
 }
-fn privacy_out_vec(
-    env: &WasiEnv,
-    iovs: WasmPtr<__wasi_iovec_t, Array>,
-    iovs_len: u32,
-    nout: WasmPtr<u32>,
-) -> __wasi_errno_r {
-    eprintln!("[Runtime] privacy_out_vec({:?}, {:?})", nums, len);
 
-    let (memory, mut state) = env.get_memory_and_wasi_state(0);
-    let privacy_vec = iovs.deref(memory, 0, iovs_len);
+/// ### `privacy_out_vec()`
+/// Inputs:
+/// - `const __wasi_iovec_t *iovs`
+///     Vectors where data will be stored
+/// - `size_t iovs_len`
+///     Number of vectors
+/// - `size_t nwrite`
+///     Number of vectors write
+fn privacy_out_vec<M: MemorySize>(
+    ctx: &FunctionEnvMut<'_, wasmer_wasi::WasiEnv>,
+    iovs: WasmPtr<wasmer_wasi::types::__wasi_iovec_t<M>, M>,
+    iovs_len: M::Offset,
+    nwrite: WasmPtr<M::Offset, M>,
+) -> wasmer_wasi::types::__wasi_errno_t {
+    let env = ctx.data();
+    eprintln!("[Runtime] privacy_out_vec({:?}, {:?})", iovs, iovs_len);
+
+    let (memory, mut state, inodes) = env.get_memory_and_wasi_state_and_inodes(&ctx, 0);
+    let iovs = wasmer_wasi::macros::wasi_try_mem_ok!(iovs.slice(&memory, iovs_len));
+    let privacy_vec = iovs.deref(&memory);
     return 0;
 }
 
