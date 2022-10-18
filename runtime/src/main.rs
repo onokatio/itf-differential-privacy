@@ -55,8 +55,6 @@ fn help(){
 
 fn main() -> anyhow::Result<()>{
     let args: Vec<String> = env::args().collect();
-    //let path = "../samples/target/wasm32-wasi/debug/samples.wasm";
-    //let path = "../samples/target/wasm32-unknown-unknown/debug/samples.wasm";
     if args.len() != 2 {
         help();
         return Err(anyhow::anyhow!("wasm file path is required"));
@@ -65,49 +63,28 @@ fn main() -> anyhow::Result<()>{
     eprintln!("[Runtime] Creating environment(store)...");
     let mut store = Store::default();
     eprintln!("[Runtime] Loading {}...", path);
-    let wasm_bytes = std::fs::read(path)?;
-    let module = Module::new(&store, wasm_bytes)?;
+    let module = Module::from_file(&store, path)?;
     eprintln!("[Runtime] Creating environment(state)...");
     let mut state_builder = wasmer_wasi::WasiState::new("wasi-prog-name");
-    let state = state_builder.build()?;
+    let wasi_env = state_builder.finalize(&mut store)?;
     eprintln!("[Runtime] Creating environment(env)...");
-    let env = wasmer_wasi::WasiFunctionEnv::new(&mut store, wasmer_wasi::WasiEnv::new(state)).env;
     eprintln!("[Runtime] Loading syscall implemention...");
-    let mut wasix_32v1 = wasmer_wasi::generate_import_object_from_env(&mut store,&env,wasmer_wasi::WasiVersion::Wasix32v1).get_namespace_exports("wasix_32v1").unwrap();
-    let mut wasix_64v1 = wasmer_wasi::generate_import_object_from_env(&mut store,&env,wasmer_wasi::WasiVersion::Wasix64v1).get_namespace_exports("wasix_64v1").unwrap();
-    let mut wasi_snapshot_preview1 = wasmer_wasi::generate_import_object_from_env(&mut store,&env,wasmer_wasi::WasiVersion::Snapshot1).get_namespace_exports("wasi_snapshot_preview1").unwrap();
+    let mut wasi_snapshot_preview1 = wasmer_wasi::generate_import_object_from_env(&mut store,&wasi_env.env,wasmer_wasi::WasiVersion::Snapshot1).get_namespace_exports("wasi_snapshot_preview1").unwrap();
     //wasi_snapshot_preview1.insert("random_get", wasmer::Function::new_native(&store, deny_syscall_2));
     //wasi_snapshot_preview1.insert("fd_write", wasmer::Function::new_native(&store, deny_syscall_4));
     let mut wasi_dp_preview1 = Exports::new();
-    //wasi_dp_preview1.insert("privacy_out_array5", wasmer::Function::new_typed(&mut store, privacy_out_array5));
-    //wasi_dp_preview1.insert("privacy_out_vec", wasmer::Function::new_typed_with_env(&mut store, &env, privacy_out_vec::<Memory32>));
+    wasi_dp_preview1.insert("privacy_out_array5", wasmer::Function::new_typed(&mut store, privacy_out_array5));
+    //wasi_dp_preview1.insert("privacy_out_vec", wasmer::Function::new_typed_with_env(&mut store, &wenv, privacy_out_vec::<Memory32>));
     let mut import_object = Imports::new();
-    //import another function
-    //wasi_snapshot_preview1.insert("sock_accept", wasix_32v1.get_function("sock_accept").unwrap().clone());
+
     import_object.register_namespace("wasi_snapshot_preview1", wasi_snapshot_preview1);
-    //import_object.register_namespace("wasix_64v1", wasix_64v1);
-    //import_object.register_namespace("wasix_32v1", wasix_32v1);
     import_object.register_namespace("wasi_dp_preview1", wasi_dp_preview1);
     eprintln!("[Runtime] Create Instance");
     let instance = Instance::new(&mut store,&module, &import_object)?;
     eprintln!("[Runtime] Find _start");
-    match instance.exports.get_function("_start") {
-        Ok(f) => {
-            eprintln!("[Runtime] Start `_start` {}", path);
-            match f.call(&mut store,&[]) {
-                Ok(_) => {
-                    eprintln!("[Runtime] Done {}", path);
-                },
-                Err(e) => {
-                    eprintln!("[Runtime] Error {}", e);
-                }
-            };
-        }
-        //ExportError => {
-        _ => {
-            eprintln!("Couldn't get _start function");
-        }
-    }
+    let endpoint = "_start";
+    let f = instance.exports.get_function(endpoint)?;
+    f.call(&mut store,&[])?;
 
     //let add_one = instance.exports.get_function("add_one")?;
     //let result = add_one.call(&[Value::I32(42)])?;
