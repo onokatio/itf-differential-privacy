@@ -1,0 +1,50 @@
+{
+    // IntelliSense を使用して利用可能な属性を学べます。
+    // 既存の属性の説明をホバーして表示します。
+    // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'runtime'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=runtime",
+                    "--package=runtime"
+                ],
+                "filter": {
+                    "name": "runtime",
+                    "kind": "bin"
+                }
+            },
+            "args": ["../samples/rust/target/wasm32-wasi/debug/samples.wasm"],
+            "cwd": "${workspaceFolder}",
+            "terminal": "console",
+            "sourceLanguages": ["rust"],
+            "sourceMap": {
+                "/rustc/c97d02cdb5ca5f5e9eff1fa9e4560d220d1fd2a0": "/Users/katio/.rustup/toolchains/nightly-aarch64-apple-darwin/lib/rustlib/src/rust/"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'runtime'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=runtime",
+                    "--package=runtime"
+                ],
+                "filter": {
+                    "name": "runtime",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

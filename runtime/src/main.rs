@@ -1,52 +1,8 @@
 use std::env;
-use wasmer::{Store, Module, Instance, Imports, Exports, FunctionEnvMut, WasmPtr, MemorySize, Memory32};
+use wasmer::{Store, Module, Instance, Imports, Exports, Memory32};
 use wasmer_wasi;
+mod imports;
 //use anyhow;
-
-fn privacy_out_array5(a: i32, b: i32, c: i32, d: i32, e: i32) -> i32 {
-    eprintln!("[Runtime] privacy_out_array5({:?},{:?},{:?},{:?},{:?})",a,b,c,d,e);
-    return 0;
-}
-
-/// ### `privacy_out_vec()`
-/// Inputs:
-/// - `const __wasi_iovec_t *iovs`
-///     Vectors where data will be stored
-/// - `size_t iovs_len`
-///     Number of vectors
-/// - `size_t nwrite`
-///     Number of vectors write
-/*
-fn privacy_out_vec<M: MemorySize>(
-    ctx: FunctionEnvMut<'_, wasmer_wasi::WasiEnv>,
-    iovs: WasmPtr<wasmer_wasi::types::__wasi_iovec_t<M>, M>,
-    iovs_len: M::Offset,
-    nwritten: WasmPtr<M::Offset, M>,
-) -> wasmer_wasi::types::__wasi_errno_t {
-    let env = ctx.data();
-    eprintln!("[Runtime] privacy_out_vec({:?}, {:?})", iovs, iovs_len);
-
-    let memory = env.memory();
-    let mut state = env.state();
-    let iovs = match iovs.slice(&env.memory_view(&ctx), iovs_len) {
-        Ok(iovs) => iovs,
-        Err(e) => panic!("address invalid {}", e),
-    };
-    let nwritten = nwritten.deref(&env.memory_view(&ctx));
-    return 0;
-}*/
-
-#[allow(dead_code)]
-fn deny_syscall_2(_: i32, _: i32) -> i32 {
-    eprintln!("deny_syscall");
-    return 0;
-}
-
-#[allow(dead_code)]
-fn deny_syscall_4(_: i32, _: i32, _: i32, _: i32) -> i32 {
-    eprintln!("deny_syscall");
-    return 12;
-}
 
 fn help(){
     println!("usage:
@@ -60,28 +16,25 @@ fn main() -> anyhow::Result<()>{
         return Err(anyhow::anyhow!("wasm file path is required"));
     }
     let path = &args[1];
-    eprintln!("[Runtime] Creating environment(store)...");
     let mut store = Store::default();
-    eprintln!("[Runtime] Loading {}...", path);
-    let module = Module::from_file(&store, path)?;
-    eprintln!("[Runtime] Creating environment(state)...");
+    let wasm_bytes = std::fs::read(path)?;
+
+    let ignore_validation = true;
+    let module = match ignore_validation {
+        true => {
+            unsafe {
+                Module::from_binary_unchecked(&store, wasm_bytes.as_ref())?
+            }
+        },
+        false => Module::from_binary(&store, wasm_bytes.as_ref())?
+    };
     let mut state_builder = wasmer_wasi::WasiState::new("wasi-prog-name");
     let wasi_env = state_builder.finalize(&mut store)?;
-    eprintln!("[Runtime] Creating environment(env)...");
-    eprintln!("[Runtime] Loading syscall implemention...");
-    let mut wasi_snapshot_preview1 = wasmer_wasi::generate_import_object_from_env(&mut store,&wasi_env.env,wasmer_wasi::WasiVersion::Snapshot1).get_namespace_exports("wasi_snapshot_preview1").unwrap();
-    //wasi_snapshot_preview1.insert("random_get", wasmer::Function::new_native(&store, deny_syscall_2));
-    //wasi_snapshot_preview1.insert("fd_write", wasmer::Function::new_native(&store, deny_syscall_4));
-    let mut wasi_dp_preview1 = Exports::new();
-    wasi_dp_preview1.insert("privacy_out_array5", wasmer::Function::new_typed(&mut store, privacy_out_array5));
-    //wasi_dp_preview1.insert("privacy_out_vec", wasmer::Function::new_typed_with_env(&mut store, &wenv, privacy_out_vec::<Memory32>));
-    let mut import_object = Imports::new();
 
-    import_object.register_namespace("wasi_snapshot_preview1", wasi_snapshot_preview1);
-    import_object.register_namespace("wasi_dp_preview1", wasi_dp_preview1);
-    eprintln!("[Runtime] Create Instance");
+    let import_object = imports::import_object(&mut store, &wasi_env.env);
     let instance = Instance::new(&mut store,&module, &import_object)?;
-    eprintln!("[Runtime] Find _start");
+    let memory = instance.exports.get_memory("memory")?;
+    wasi_env.data_mut(&mut store).set_memory(memory.clone());
     let endpoint = "_start";
     let f = instance.exports.get_function(endpoint)?;
     f.call(&mut store,&[])?;
