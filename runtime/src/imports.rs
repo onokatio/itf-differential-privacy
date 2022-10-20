@@ -8,10 +8,25 @@ pub fn import_object(store: &mut Store, env: &FunctionEnv<WasiEnv>) -> Imports {
     return import_object;
 }
 
+struct DenySyscall {
+    name: String,
+    argc: u32,
+}
+
 fn wasi_exports(store: &mut Store, env: &FunctionEnv<WasiEnv>) -> Exports {
     let mut wasi_snapshot_preview1 = wasmer_wasi::generate_import_object_from_env(store,env,wasmer_wasi::WasiVersion::Snapshot1).get_namespace_exports("wasi_snapshot_preview1").unwrap();
-    //wasi_snapshot_preview1.insert("random_get", wasmer::Function::new_native(&store, deny_syscall_2));
-    //wasi_snapshot_preview1.insert("fd_write", wasmer::Function::new_native(&store, deny_syscall_4));
+    let deny_syscall_list = vec![
+        DenySyscall { name: String::from("hoge"), argc: 2 },
+        //DenySyscall { name: String::from("random_get"), argc: 2 },
+        //DenySyscall { name: String::from("fd_write"), argc: 4 },
+    ];
+    for s in deny_syscall_list.iter() {
+        match s.argc {
+            2 => wasi_snapshot_preview1.insert(&s.name, wasmer::Function::new_typed(store, deny_syscall_2)),
+            4 => wasi_snapshot_preview1.insert(&s.name, wasmer::Function::new_typed(store, deny_syscall_4)),
+            _ => panic!("Unexpected number of arguments to wasi_exports: {}", s.argc),
+        }
+    }
     return wasi_snapshot_preview1;
 }
 
