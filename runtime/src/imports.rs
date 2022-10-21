@@ -47,7 +47,6 @@ fn wasi_dp_exports(store: &mut Store, env: &FunctionEnv<WasiEnv>) -> Exports {
 ///     Number of vectors write
 fn privacy_out_vec<M: MemorySize>(
     ctx: FunctionEnvMut<'_, wasmer_wasi::WasiEnv>,
-    //iovs: WasmPtr<wasmer_wasi::types::__wasi_ciovec_t<M>, M>,
     iovs: WasmPtr<M::Offset, M>,
     iovs_len: M::Offset,
     nwritten: WasmPtr<i32, M>,
@@ -69,7 +68,7 @@ fn privacy_out_vec<M: MemorySize>(
     for i in iovs.iter() {
         match i.read() {
             Ok(i) => {
-                println!("iovs[] = {}",i);
+                println!("[Runtime] privacy_out_vec: iovs[] = {}",i);
                 nwritten+=1;
             },
             Err(e) => {
