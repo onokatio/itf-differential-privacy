@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"name": "runtime",
+			"path": "runtime"
+		},
+		{
+			"name": "sample-rust",
+			"path": "samples/rust"
+		},
+		{
+			"name": "plugin",
+			"path": "plugin"
+		}
+	],
+	"settings": {}
+}
