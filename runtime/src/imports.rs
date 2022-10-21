@@ -32,7 +32,7 @@ fn wasi_exports(store: &mut Store, env: &FunctionEnv<WasiEnv>) -> Exports {
 
 fn wasi_dp_exports(store: &mut Store, env: &FunctionEnv<WasiEnv>) -> Exports {
     let mut wasi_dp = Exports::new();
-    wasi_dp.insert("privacy_out_array5", wasmer::Function::new_typed(store, privacy_out_array5));
+    wasi_dp.insert("privacy_out_array5", wasmer::Function::new_typed(store, privacy_out_array5::<Memory32>));
     wasi_dp.insert("privacy_out_vec", wasmer::Function::new_typed_with_env(store, env, privacy_out_vec::<Memory32>));
     return wasi_dp;
 }
@@ -47,25 +47,49 @@ fn wasi_dp_exports(store: &mut Store, env: &FunctionEnv<WasiEnv>) -> Exports {
 ///     Number of vectors write
 fn privacy_out_vec<M: MemorySize>(
     ctx: FunctionEnvMut<'_, wasmer_wasi::WasiEnv>,
-    iovs: WasmPtr<wasmer_wasi::types::__wasi_iovec_t<M>, M>,
+    //iovs: WasmPtr<wasmer_wasi::types::__wasi_ciovec_t<M>, M>,
+    iovs: WasmPtr<M::Offset, M>,
     iovs_len: M::Offset,
-    nwritten: WasmPtr<M::Offset, M>,
+    nwritten: WasmPtr<i32, M>,
 ) -> wasmer_wasi::types::__wasi_errno_t {
     let env = ctx.data();
     eprintln!("[Runtime] privacy_out_vec({:?}, {:?})", iovs, iovs_len);
 
-    let memory = env.memory();
-    let mut state = env.state();
-    let iovs = match iovs.slice(&env.memory_view(&ctx), iovs_len) {
+    let memory = env.memory_view(&ctx);
+    let iovs = match iovs.slice(&memory, iovs_len) {
         Ok(iovs) => iovs,
-        Err(e) => panic!("address invalid {}", e),
+        Err(e) => {
+            eprintln!("address invalid {}", e);
+            return wasmer_wasi::types::__WASI_EINVAL
+        },
     };
-    let nwritten = nwritten.deref(&env.memory_view(&ctx));
-    return 0;
+    let nwritten_ref = nwritten.deref(&memory);
+    let mut nwritten = 0;
+
+    for i in iovs.iter() {
+        match i.read() {
+            Ok(i) => {
+                println!("iovs[] = {}",i);
+                nwritten+=1;
+            },
+            Err(e) => {
+                eprintln!("WasmRef read failed {}", e);
+                return wasmer_wasi::types::__WASI_EINVAL
+            },
+        };
+    }
+    match nwritten_ref.write(nwritten) {
+        Err(e) => {
+            eprintln!("WasmRef write failed {}", e);
+            return wasmer_wasi::types::__WASI_EINVAL
+        },
+        _ => {},
+    };
+    return wasmer_wasi::types::__WASI_ESUCCESS;
 }
 
-fn privacy_out_array5(a: i32, b: i32, c: i32, d: i32, e: i32) -> i32 {
-    eprintln!("[Runtime] privacy_out_array5({:?},{:?},{:?},{:?},{:?})",a,b,c,d,e);
+fn privacy_out_array5<M: MemorySize>(a: M::Native, b: M::Native, c: M::Native, d: M::Native, e: M::Native) -> i32 {
+    eprintln!("[Runtime] privacy_out_array5({:?},{:?},{:?},{:?},{:?})",M::native_to_offset(a),M::native_to_offset(b),M::native_to_offset(c),M::native_to_offset(d),M::native_to_offset(e));
     return 0;
 }
 

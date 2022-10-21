@@ -18,7 +18,7 @@ struct Output<T> {
 #[link(wasm_import_module = "wasi_dp_preview1")]
 extern "C" {
     pub fn privacy_out_array5(a: i32, b: i32, c: i32, d: i32, e: i32) -> i32;
-    //pub fn privacy_out_vec(vecs: Vec<i32>, len: i32, nwritten: &i32) -> i32;
+    pub fn privacy_out_vec(vecs: *const i32, len: i32, nwritten: &i32) -> i32;
 }
 
 /*
@@ -88,9 +88,9 @@ fn main(){
     let nwritten = 0;
     unsafe {
         privacy_out_array5(v[0], v[1], v[2], v[3], v[4]);
-        //privacy_out_vec(v.to_vec(), v.len() as i32, &nwritten);
+        privacy_out_vec(v.as_ptr(), v.len() as i32, &nwritten);
     }
 
     //return Ok(());
-    return;
+    //return;
 }
