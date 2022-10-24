@@ -11,6 +11,15 @@
 		{
 			"name": "plugin",
 			"path": "plugin"
+		},
+		{
+			"path": "samples/c"
+		},
+		{
+			"path": "samples/c-linpack"
+		},
+		{
+			"path": "samples/cpp-linpack"
 		}
 	],
 	"settings": {}
