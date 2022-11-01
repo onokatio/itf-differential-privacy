@@ -1,11 +1,10 @@
 ## Compile
 
-```
-$ wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-16/wasi-sdk-16.0-macos.tar.gz
-$ tar xvf wasi-sdk-16.0-macos.tar.gz
-$ ./wasi-sdk-16.0/bin/clang ./main.c
-```
+for apple silicon, use `arch -x86_64` before compiler command.
 
-## WASM Binary
 
-`main.wasm`
+### for WASM
+
+```
+$ path/to/wasi-sdk-16.0/bin/clang -O3 -o main.wasm ./main.c
+```
