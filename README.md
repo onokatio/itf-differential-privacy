@@ -10,7 +10,7 @@ $ rustup target add wasm32-wasi
 2. compile sample
 
 ```
-$ cd samples/rust
+$ cd samples/dp.rs
 $ cargo build --target wasm32-wasi --release
 ```
 
