@@ -1,7 +1,10 @@
-use std::ptr::Unique;
 use std::sync::{Arc, Mutex};
 use wasmer::{Exports, FunctionEnv, FunctionEnvMut, Imports, Memory32, MemorySize, Store, WasmPtr};
 use wasmer_wasi::WasiEnv;
+
+lazy_static! {
+    pub static ref DP_BUFF: Mutex<Vec<u32>> = Mutex::new(Vec::new());
+}
 
 enum OutputType {
     Vec2Sum,
@@ -71,14 +74,11 @@ fn wasi_dp_exports<M: MemorySize>(
     let mut wasi_dp = Exports::new();
     wasi_dp.insert(
         "privacy_out_array5",
-        wasmer::Function::new_typed(store, privacy_out_array5),
+        wasmer::Function::new_typed(store, privacy_out_array5::<Memory32>),
     );
-    let buff1 = buff.clone();
-    let wrap =
-        |ctx, iovs, iovs_len, nwritten| privacy_out_vec::<M>(ctx, iovs, iovs_len, nwritten, buff1);
     wasi_dp.insert(
         "privacy_out_vec",
-        wasmer::Function::new_typed_with_env(store, env, wrap),
+        wasmer::Function::new_typed_with_env(store, env, privacy_out_vec::<Memory32>),
     );
     /*
     wasi_dp.insert(
@@ -89,6 +89,7 @@ fn wasi_dp_exports<M: MemorySize>(
     return wasi_dp;
 }
 
+/*
 // Carrying privacy_out_vec with buff by clousure
 fn privacy_out_vec_withbuff<M: MemorySize>(
     buff: Arc<Mutex<Vec<Output<M::Offset>>>>,
@@ -104,6 +105,7 @@ fn privacy_out_vec_withbuff<M: MemorySize>(
         privacy_out_vec::<M>(ctx, iovs, iovs_len, nwritten, buff)
     });
 }
+*/
 
 /// ### `privacy_out_vec()`
 /// Inputs:
@@ -118,7 +120,7 @@ fn privacy_out_vec<M: MemorySize>(
     iovs: WasmPtr<M::Offset, M>,
     iovs_len: M::Offset,
     nwritten: WasmPtr<i32, M>,
-    buff: Arc<Mutex<Vec<Output<M::Offset>>>>,
+    //buff: Arc<Mutex<Vec<Output<M::Offset>>>>,
 ) -> wasmer_wasi::types::__wasi_errno_t {
     let env = ctx.data();
     eprintln!("[Runtime] privacy_out_vec({:?}, {:?})", iovs, iovs_len);
@@ -137,7 +139,12 @@ fn privacy_out_vec<M: MemorySize>(
     for i in iovs.iter() {
         match i.read() {
             Ok(i) => {
-                println!("[Runtime] privacy_out_vec: iovs[] = {}", i);
+                eprintln!("[Runtime] privacy_out_vec: iovs[] = {}", i);
+                let i = match i.try_into() {
+                    Ok(a) => a,
+                    Err(_) => panic!("err"),
+                };
+                DP_BUFF.lock().unwrap().push(i);
                 nwritten += 1;
             }
             Err(e) => {

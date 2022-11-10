@@ -5,22 +5,13 @@
 			"path": "runtime"
 		},
 		{
-			"name": "sample-rust",
-			"path": "samples/rust"
-		},
-		{
 			"name": "plugin",
 			"path": "plugin"
 		},
 		{
-			"path": "samples/c"
+			"name": "samples",
+			"path": "samples"
 		},
-		{
-			"path": "samples/c-linpack"
-		},
-		{
-			"path": "samples/cpp-linpack"
-		}
 	],
 	"settings": {}
 }
