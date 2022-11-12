@@ -1,16 +1,18 @@
 use std::error::Error;
 use std::env;
-use std::io;
+use std::fs;
 use std::process;
 use serde::Deserialize;
+/* uncomment this and other sections below to process sqlite.
+   however, 
+   I don't know how to fix the compilation error while compiling sqlite module
+   with --target wasm32-wasi (lack of stdio.h). see README.md */
+// use sqlite;
 
-use sqlite;
-
-// https://docs.rs/csv/latest/csv/tutorial/
-
+// data structure for yellow_tripdata
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-struct NYTripData {
+struct YellowTripData {
     #[serde(rename = "VendorID")]
     vendor_id: i32, // 1
     tpep_pickup_datetime: String,  // 2022-01-01 00:35:40
@@ -36,17 +38,19 @@ struct NYTripData {
     airport_fee: f32, // 0.0
 }
 
-#[allow(dead_code)]
-fn example() -> Result<(), Box<dyn Error>> {
-    let mut rdr = csv::Reader::from_reader(io::stdin());
+// process a csv file
+fn process_csv(trip_csv : &str) -> Result<(), Box<dyn Error>> {
+    let mut rdr = csv::Reader::from_reader(fs::File::open(trip_csv)?);
     for row in rdr.deserialize() {
-        let row: NYTripData = row?;
+        let row: YellowTripData = row?;
         println!("{:?}", row);
     }
     Ok(())
 }
 
-fn sqlite_example(trip_sqlite : &str, query : &str) -> Result<(), Box<dyn Error>> {
+/* uncomment this to process sqlite file */
+/*
+fn process_sqlite(trip_sqlite : &str, query : &str) -> Result<(), Box<dyn Error>> {
     let conn = sqlite::open(trip_sqlite).unwrap();
     conn
         .iterate(query, |cell| {
@@ -58,13 +62,24 @@ fn sqlite_example(trip_sqlite : &str, query : &str) -> Result<(), Box<dyn Error>
         .unwrap();
     Ok(())
 }
+ */
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let in_sqlite = &args[1]; // "../data/fhvhv_tripdata_2022-06.sqlite"
-    let query = &args[2];     // "select distinct dispatching_base_num from trip"
-    if let Err(err) = sqlite_example(in_sqlite, query) {
-        println!("error running example: {}", err);
-        process::exit(1);
+    let in_file = &args[1]; // "../data/fhvhv_tripdata_2022-06.sqlite"
+    if in_file.ends_with(".csv") {
+        if let Err(err) = process_csv(in_file) {
+            println!("error running example: {}", err);
+            process::exit(1);
+        }    
     }
+    /* uncomment this to process sqlite
+    else if in_file.ends_with(".sqlite") {
+        let query = &args[2];     // "select distinct dispatching_base_num from trip"
+        if let Err(err) = process_sqlite(in_file, query) {
+            println!("error running example: {}", err);
+            process::exit(1);
+        }    
+    }
+     */
 }
