@@ -17,11 +17,11 @@ struct YellowTripData {
     vendor_id: i32, // 1
     tpep_pickup_datetime: String,  // 2022-01-01 00:35:40
     tpep_dropoff_datetime: String, // 2022-01-01 00:53:29
-    passenger_count: f32, // 2.0
+    passenger_count: Option<f32>, // 2.0
     trip_distance: f32, // 3.8
     #[serde(rename = "RatecodeID")]
-    ratecode_id: f32, // 1.0,
-    store_and_fwd_flag: String, // N
+    ratecode_id: Option<f32>, // 1.0,
+    store_and_fwd_flag: Option<String>, // N
     #[serde(rename = "PULocationID")]
     pu_location_id: i32, // 142
     #[serde(rename = "DOLocationID")]
@@ -34,17 +34,20 @@ struct YellowTripData {
     tolls_amount: f32, // 0.0
     improvement_surcharge: f32, // 0.3
     total_amount: f32, // 21.95
-    congestion_surcharge: f32, // 2.5
-    airport_fee: f32, // 0.0
+    congestion_surcharge: Option<f32>, // 2.5
+    airport_fee: Option<f32>, // 0.0
 }
 
 // process a csv file
 fn process_csv(trip_csv : &str) -> Result<(), Box<dyn Error>> {
     let mut rdr = csv::Reader::from_reader(fs::File::open(trip_csv)?);
+    let mut count = 0;
     for row in rdr.deserialize() {
-        let row: YellowTripData = row?;
-        println!("{:?}", row);
+        let _row: YellowTripData = row?;
+        count += 1;
+        //println!("{:?}", row);
     }
+    println!("{:?} records", count);
     Ok(())
 }
 
@@ -66,7 +69,7 @@ fn process_sqlite(trip_sqlite : &str, query : &str) -> Result<(), Box<dyn Error>
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let in_file = &args[1]; // "../data/fhvhv_tripdata_2022-06.sqlite"
+    let in_file = if args.len() > 1 { &args[1] } else { "../samples/tlc_trip_record/data/yellow_tripdata_2022-01.csv" };
     if in_file.ends_with(".csv") {
         if let Err(err) = process_csv(in_file) {
             println!("error running example: {}", err);

@@ -21,21 +21,38 @@ We'll see which one is most suitable.
 # Converting parquet to csv and sqlite
 
 ```
+cd data
 ./parquet_to_csv.py ???.parquet 
 ```
 
 will output ???.csv and ???.sqlite
 
-# Build and run
+# Build
 
-* for now I was only able to compile it for native target (not wasm) with the usual 
 ```
-cargo build
+cargo build --target wasm32-wasi
 ```
-# Sqlite
+
+# Run
+
+* at this point there are two issues
+1. the runtime cannot pass arguments to the program, so I must hardcode the data file name
+2. opening the csv file fails
+```
+tau@xps13:runtime$ ./target/debug/runtime ../samples/tlc_trip_record/tlc_trip_record/target/wasm32-wasi/debug/tlc_trip_record.wasm
+error running example: No such file or directory (os error 44)
+Error: RuntimeError: WASI exited with code: 1
+
+Caused by:
+    WASI exited with code: 1
+```
+
+
+# Processing sqlite files
 
 * I thought processing sqlite with a query specified at command line is more convenient
-* The code is already in main.rs but it is currently commented out, as targetting --wasm32-wasi fails when it tries to compile a C program included in sqlite3 module, complaining the lack of stdio.h
+* ./parquet_to_csv.py already produces an sqlite file
+* The code that processes sqlite is already in main.rs but it is currently commented out, as targetting --wasm32-wasi fails when it tries to compile a C program included in sqlite3 module, complaining the lack of stdio.h
 
 ```
 warning: source/sqlite3.c:14111:10: fatal error: 'stdio.h' file not found
