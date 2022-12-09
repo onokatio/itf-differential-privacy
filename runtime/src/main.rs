@@ -1,12 +1,14 @@
 #[macro_use]
 extern crate lazy_static;
+
 use std::io::prelude::*;
 use std::process::{Command, Stdio};
 
 use std::env;
 use std::sync::{Arc, Mutex};
+
 use wasmer::{Instance, Memory32, MemorySize, Module, Store};
-use wasmer_wasi::{WasiEnv, WasiState};
+use wasmer_wasi::{WasiState}; // WasiEnv, 
 mod imports;
 //use anyhow;
 
@@ -41,15 +43,25 @@ fn main() -> anyhow::Result<()> {
     f.call(&mut store, &[])?;
 
     let dp_buff = imports::DP_BUFF.lock().unwrap();
-    println!("{:?} ", dp_buff);
-
-    let mut p = Command::new("../plugin/target/debug/plugin")
+    let dp_request = 
+        match *imports::OUTPUTTYPE.lock().unwrap() {
+            imports::OutputType::Vec2Sum => imports::sum(*imports::EPS.lock().unwrap(), dp_buff.to_vec()),
+            imports::OutputType::Vec2Avg => imports::avg(*imports::EPS.lock().unwrap(), *imports::CLIP.lock().unwrap(), dp_buff.to_vec()),
+            imports::OutputType::Vec2Cnt => imports::cnt(*imports::EPS.lock().unwrap(), *imports::CLIP.lock().unwrap(), dp_buff.to_vec())
+        };
+    //imports::sum(*imports::EPS.lock().unwrap(), dp_buff.to_vec());
+    //let dp_request = imports::sum(*imports::EPS.lock().unwrap(), dp_buff.to_vec());
+    let dp_request_str = serde_json::to_string(&dp_request).unwrap();
+    println!("[runtime] sends {:?} -> privacy gateway", &dp_request_str);
+    
+    let p = Command::new("../plugin/target/release/plugin")
         .stdin(Stdio::piped())
         .spawn()
         .unwrap();
-    p.stdin
-        .unwrap()
-        .write_all("{\"output_type\": \"Vec2Sum\", \"value\": [0,1]}".as_bytes());
+
+    let _res = p.stdin.unwrap().write_all(dp_request_str.as_bytes());
+    
+    // .write_all("{\"output_type\": \"Vec2Sum\", \"value\": [0,1]}".as_bytes());
     //let result = add_one.call(&[Value::I32(42)])?;
     Ok(())
 }

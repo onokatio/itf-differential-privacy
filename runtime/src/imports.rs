@@ -1,20 +1,50 @@
+use serde::{Serialize, Deserialize};
 use std::sync::{Arc, Mutex};
 use wasmer::{Exports, FunctionEnv, FunctionEnvMut, Imports, Memory32, MemorySize, Store, WasmPtr};
 use wasmer_wasi::WasiEnv;
 
-lazy_static! {
-    pub static ref DP_BUFF: Mutex<Vec<u32>> = Mutex::new(Vec::new());
-}
-
-enum OutputType {
+#[derive(Debug, Serialize, Deserialize)]
+pub enum OutputType {
     Vec2Sum,
     Vec2Avg,
+    Vec2Cnt,
 }
 
+lazy_static! {
+    pub static ref DP_BUFF: Mutex<Vec<u32>> = Mutex::new(Vec::new());
+    pub static ref EPS: Mutex<f64> = Mutex::new(1.0);
+    pub static ref CLIP: Mutex<f64> = Mutex::new(100.0);
+    pub static ref OUTPUTTYPE: Mutex<OutputType> = Mutex::new(OutputType::Vec2Sum);
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Output<T> {
     output_type: OutputType,
-    values: Vec<T>,
+    eps: f64,
+    clip: f64,
+    value: T,
 }
+
+pub fn sum<T>(eps: f64, value : T) -> Output<T> {
+    Output { output_type: OutputType::Vec2Sum,
+             eps: eps,
+             clip: 1.0,
+             value: value }
+}
+
+pub fn avg<T>(eps: f64, clip: f64, value: T) -> Output<T> {
+    Output { output_type : OutputType::Vec2Avg,
+             eps: eps,
+             clip: clip,
+             value : value }
+ }
+
+pub fn cnt<T>(eps: f64, clip: f64, value: T) -> Output<T> {
+    Output { output_type : OutputType::Vec2Cnt,
+             eps: eps,
+             clip: clip,
+             value : value }
+ }
 
 pub fn import_object<M: MemorySize>(
     store: &mut Store,
@@ -22,8 +52,10 @@ pub fn import_object<M: MemorySize>(
     buff: &Arc<Mutex<Vec<Output<M::Offset>>>>,
 ) -> Imports {
     let mut import_object = Imports::new();
-    import_object.register_namespace("wasi_snapshot_preview1", wasi_exports(store, env));
-    import_object.register_namespace("wasi_dp_preview1", wasi_dp_exports::<M>(store, env, buff));
+    import_object.register_namespace("wasi_snapshot_preview1",
+                                     wasi_exports(store, env));
+    import_object.register_namespace("wasi_dp_preview1",
+                                     wasi_dp_exports::<M>(store, env, buff));
     return import_object;
 }
 
@@ -69,7 +101,7 @@ fn wasi_exports(store: &mut Store, env: &FunctionEnv<WasiEnv>) -> Exports {
 fn wasi_dp_exports<M: MemorySize>(
     store: &mut Store,
     env: &FunctionEnv<WasiEnv>,
-    buff: &Arc<Mutex<Vec<Output<M::Offset>>>>,
+    _buff: &Arc<Mutex<Vec<Output<M::Offset>>>>,
 ) -> Exports {
     let mut wasi_dp = Exports::new();
     wasi_dp.insert(
@@ -119,11 +151,27 @@ fn privacy_out_vec<M: MemorySize>(
     ctx: FunctionEnvMut<'_, wasmer_wasi::WasiEnv>,
     iovs: WasmPtr<M::Offset, M>,
     iovs_len: M::Offset,
+    output_type: u32,
+    eps: f64,
+    clip: f64,
     nwritten: WasmPtr<i32, M>,
     //buff: Arc<Mutex<Vec<Output<M::Offset>>>>,
 ) -> wasmer_wasi::types::__wasi_errno_t {
+    {
+        *EPS.lock().unwrap() = eps;
+    }
+    {
+        *CLIP.lock().unwrap() = clip;
+    }
+    {
+        *OUTPUTTYPE.lock().unwrap() = if output_type == 0 { OutputType::Vec2Sum }
+        else if output_type == 1 { OutputType::Vec2Avg }
+        else if output_type == 2 { OutputType::Vec2Cnt }
+        else { OutputType::Vec2Sum };
+    }
+    
     let env = ctx.data();
-    eprintln!("[Runtime] privacy_out_vec({:?}, {:?})", iovs, iovs_len);
+    //eprintln!("[Runtime] privacy_out_vec({:?}, {:?})", iovs, iovs_len);
 
     let memory = env.memory_view(&ctx);
     let iovs = match iovs.slice(&memory, iovs_len) {
@@ -139,7 +187,7 @@ fn privacy_out_vec<M: MemorySize>(
     for i in iovs.iter() {
         match i.read() {
             Ok(i) => {
-                eprintln!("[Runtime] privacy_out_vec: iovs[] = {}", i);
+                //eprintln!("[Runtime] privacy_out_vec: iovs[] = {}", i);
                 let i = match i.try_into() {
                     Ok(a) => a,
                     Err(_) => panic!("err"),
