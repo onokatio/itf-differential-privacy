@@ -13,5 +13,8 @@
 			"path": "samples"
 		},
 	],
-	"settings": {}
+	"settings": {
+		"editor.suggest.snippetsPreventQuickSuggestions": false,
+		"aiXcoder.showTrayIcon": false
+	}
 }
