@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 use std::sync::{Arc, Mutex};
 use wasmer::{Exports, FunctionEnv, FunctionEnvMut, Imports, Memory32, MemorySize, Store, WasmPtr};
 use wasmer_wasi::WasiEnv;
+use wasmer_wasi_types::wasi::Errno;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum OutputType {
@@ -156,7 +157,7 @@ fn privacy_out_vec<M: MemorySize>(
     clip: f64,
     nwritten: WasmPtr<i32, M>,
     //buff: Arc<Mutex<Vec<Output<M::Offset>>>>,
-) -> wasmer_wasi::types::__wasi_errno_t {
+) -> Errno {
     {
         *EPS.lock().unwrap() = eps;
     }

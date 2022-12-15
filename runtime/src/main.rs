@@ -43,7 +43,7 @@ fn main() -> anyhow::Result<()> {
     f.call(&mut store, &[])?;
 
     let dp_buff = imports::DP_BUFF.lock().unwrap();
-    let dp_request = 
+    let dp_request =
         match *imports::OUTPUTTYPE.lock().unwrap() {
             imports::OutputType::Vec2Sum => imports::sum(*imports::EPS.lock().unwrap(), dp_buff.to_vec()),
             imports::OutputType::Vec2Avg => imports::avg(*imports::EPS.lock().unwrap(), *imports::CLIP.lock().unwrap(), dp_buff.to_vec()),
@@ -53,15 +53,14 @@ fn main() -> anyhow::Result<()> {
     //let dp_request = imports::sum(*imports::EPS.lock().unwrap(), dp_buff.to_vec());
     let dp_request_str = serde_json::to_string(&dp_request).unwrap();
     println!("[runtime] sends {:?} -> privacy gateway", &dp_request_str);
-    
+
     let p = Command::new("../plugin/target/release/plugin")
         .stdin(Stdio::piped())
         .spawn()
         .unwrap();
 
     let _res = p.stdin.unwrap().write_all(dp_request_str.as_bytes());
-    
-    // .write_all("{\"output_type\": \"Vec2Sum\", \"value\": [0,1]}".as_bytes());
+
     //let result = add_one.call(&[Value::I32(42)])?;
     Ok(())
 }
