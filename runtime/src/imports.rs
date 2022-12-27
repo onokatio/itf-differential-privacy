@@ -55,7 +55,7 @@ pub fn import_object<M: MemorySize>(
     import_object.register_namespace("wasi_snapshot_preview1",
                                      wasi_exports(store, env));
     import_object.register_namespace("wasi_dp_preview1",
-                                     wasi_dp_exports::<M>(store, env, buff));
+                                     wasi_dp_exports::<M, privacy_out_array5>(store, env, buff));
     return import_object;
 }
 
@@ -98,7 +98,17 @@ fn wasi_exports(store: &mut Store, env: &FunctionEnv<WasiEnv>) -> Exports {
     return wasi_snapshot_preview1;
 }
 
-fn wasi_dp_exports<M: MemorySize>(
+trait PrivacyOutArray5Interface {
+    fn syscall_func<M: MemorySize>(
+        a: M::Native,
+        b: M::Native,
+        c: M::Native,
+        d: M::Native,
+        e: M::Native,
+    ) -> i32;
+}
+
+fn wasi_dp_exports<M: MemorySize, T: PrivacyOutArray5Interface + 'static>(
     store: &mut Store,
     env: &FunctionEnv<WasiEnv>,
     _buff: &Arc<Mutex<Vec<Output<M::Offset>>>>,
@@ -106,7 +116,8 @@ fn wasi_dp_exports<M: MemorySize>(
     let mut wasi_dp = Exports::new();
     wasi_dp.insert(
         "privacy_out_array5",
-        wasmer::Function::new_typed(store, privacy_out_array5::<Memory32>),
+        //wasmer::Function::new_typed(store, privacy_out_array5::<Memory32>),
+        wasmer::Function::new_typed(store, T::syscall_func::<Memory32>)
     );
     wasi_dp.insert(
         "privacy_out_vec",
@@ -211,23 +222,27 @@ fn privacy_out_vec<M: MemorySize>(
     return wasmer_wasi::types::__WASI_ESUCCESS;
 }
 
-fn privacy_out_array5<M: MemorySize>(
-    a: M::Native,
-    b: M::Native,
-    c: M::Native,
-    d: M::Native,
-    e: M::Native,
-) -> i32 {
-    eprintln!(
-        "[Runtime] privacy_out_array5({:?},{:?},{:?},{:?},{:?})",
-        M::native_to_offset(a),
-        M::native_to_offset(b),
-        M::native_to_offset(c),
-        M::native_to_offset(d),
-        M::native_to_offset(e)
-    );
-    return 0;
+struct privacy_out_array5 { }
+impl PrivacyOutArray5Interface for privacy_out_array5 {
+    fn syscall_func<M: MemorySize>(
+        a: M::Native,
+        b: M::Native,
+        c: M::Native,
+        d: M::Native,
+        e: M::Native,
+    ) -> i32 {
+        eprintln!(
+            "[Runtime] privacy_out_array5({:?},{:?},{:?},{:?},{:?})",
+            M::native_to_offset(a),
+            M::native_to_offset(b),
+            M::native_to_offset(c),
+            M::native_to_offset(d),
+            M::native_to_offset(e)
+        );
+        return 0;
+    }
 }
+
 
 #[allow(dead_code)]
 fn deny_syscall_2(_: i32, _: i32) -> i32 {
