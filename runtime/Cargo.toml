@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wasmer = "3.1"
-wasmer-wasi = "3.1"
+wasmer = { version = "=3.0.0-beta" }
+wasmer-wasi = { version = "=3.0.0-beta" }
 anyhow = "1.0"
 lazy_static = "1.4"
 serde = { version = "1.0", features = ["derive"] }
