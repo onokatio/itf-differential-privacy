@@ -88,7 +88,7 @@ fn main(){
     let nwritten = 0;
     unsafe {
         privacy_out_array5(v[0], v[1], v[2], v[3], v[4]);
-        privacy_out_vec(v.as_ptr(), v.len() as i32, &nwritten);
+        //privacy_out_vec(v.as_ptr(), v.len() as i32, &nwritten);
     }
     println!("{} elements written", nwritten);
 
