@@ -12,9 +12,12 @@
 			"name": "samples",
 			"path": "samples"
 		},
+		{
+			"path": "benchmark"
+		}
 	],
 	"settings": {
 		"editor.suggest.snippetsPreventQuickSuggestions": false,
-		"aiXcoder.showTrayIcon": false
+		"aiXcoder.showTrayIcon": true
 	}
 }
