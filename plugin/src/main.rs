@@ -3,6 +3,7 @@ use serde_derive::{Deserialize, Serialize};
 use statrs::distribution::{ContinuousCDF, Laplace};
 //use std::f64::consts;
 use std::io;
+use std::env;
 
 //const SIGMA: usize = 10;
 
@@ -22,6 +23,12 @@ struct Output<T> {
 }
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    let mut disableDP = 0;
+    if args.len() == 2 {
+        disableDP = 1;
+    }
+    //println!("disableDP: {:?}", disableDP);
     let mut input_json_string = String::new();
     io::stdin().read_line(&mut input_json_string).unwrap();
     let input_json = json2vec(input_json_string);
@@ -37,6 +44,7 @@ fn main() {
         }
         OutputType::Vec2Cnt => {
             let avg = dp_cnt(input_json.value, input_json.eps);
+            //let avg = cnt(input_json.value);
             println!("count + noise: {:?}", avg);
         }
     }
@@ -76,4 +84,10 @@ fn dp_cnt(data: Vec<f64>, eps: f64) -> f64 {
     let count = data[0];
     println!("[privacy gateway] count: {:?}", count);
     return count + noise;
+}
+
+fn cnt(data: Vec<f64>) -> f64 {
+    let count = data[0];
+    println!("[privacy gateway] raw count: {:?}", count);
+    return count;
 }
